@@ -43,9 +43,12 @@ namespace Certify.Management
         public event Action<RequestProgressState> OnRequestProgressStateUpdated;
 
         private ConcurrentDictionary<string, CertificateAuthority> _certificateAuthorities = new ConcurrentDictionary<string, CertificateAuthority>();
+        private bool _useWindowsNativeFeatures = true;
 
-        public CertifyManager()
+        public CertifyManager(bool useWindowsNativeFeatures = true)
         {
+            _useWindowsNativeFeatures = useWindowsNativeFeatures;
+
             var serverConfig = SharedUtils.ServiceConfigManager.GetAppServiceConfig();
 
             SettingsManager.LoadAppSettings();
@@ -55,7 +58,7 @@ namespace Certify.Management
             Util.SetSupportedTLSVersions();
 
             _itemManager = new ItemManager();
-            _credentialsManager = new CredentialsManager();
+            _credentialsManager = new CredentialsManager(useWindowsNativeFeatures);
             _serverProvider = (ICertifiedServer)new ServerProviderIIS();
 
             _progressResults = new ObservableCollection<RequestProgressState>();
@@ -74,7 +77,7 @@ namespace Certify.Management
             {
                 var customCAs = SettingsManager.GetCustomCertificateAuthorities();
 
-                foreach(var ca in customCAs)
+                foreach (var ca in customCAs)
                 {
                     _certificateAuthorities.TryAdd(ca.Id, ca);
                 }
@@ -270,7 +273,7 @@ namespace Certify.Management
             SettingsManager.LoadAppSettings();
 
             await PerformRenewalAllManagedCertificates(new RenewalSettings { }, null);
-            
+
             return await Task.FromResult(true);
         }
 
@@ -325,7 +328,7 @@ namespace Certify.Management
 
                     if (mode == CertificateCleanupMode.FullCleanup)
                     {
-                       
+
                         // cleanup old pfx files in asset store(s), if any
                         var assetPath = Path.Combine(Util.GetAppDataFolder(), "certes", "assets");
                         if (Directory.Exists(assetPath))
